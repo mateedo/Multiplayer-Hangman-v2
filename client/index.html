@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title> Multiplayer Hangman </title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css?family=Gloria+Hallelujah&display=swap" rel="stylesheet">
+        <script defer src="/socket.io/socket.io.js"></script>
+        <script defer src="lobbies.js"></script>
+        <script defer src="main.js"></script>
+        <style>
+			*{
+				font-family: "Verdana";
+				font-weight:normal;
+			}
+
+			div{
+				clear: both;
+				position: relative;
+			}
+
+			html{
+				background-color: #87CEEB;
+			}
+
+			body{
+				padding: 0;
+				margin: 0;
+				height: 100vh;
+			}
+
+			button:hover{
+				font-weight:bold;
+			}
+
+			label{
+				padding: 5px;
+			}
+			.game{
+				padding: 20px;
+				display: flex;
+				justify-content: center;
+			}
+
+			.gamebuttons{
+				padding: 20px;
+				display: flex;
+				justify-content: center;
+			}
+		</style>
+		<div class="game">
+			<canvas id="ctx" width="500" height="500" style="border:1px solid #ffffff ;background-color:white;"></canvas>
+	         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+	         <script type="text/javascript">
+
+                //THIS JAVASCRIPT RUNS THE GAME
+
+	         	//canvas management
+	         	var ctx = document.getElementById("ctx").getContext("2d");
+				ctx.font = "12px Verdana";
+				const width = 500;
+				const height = 500;
+
+				//create the connection
+				var socket = io();
+
+				//client's username
+				var username = "";
+
+				//lobbydata (when generated)
+				var lobbydata;
+
+				//holds relevant server data
+				var playingGamesBools;
+				var currentserver = "one";
+
+				socket.on('sendSocketData', (socketdata) => {
+					currentserver = socketdata;
+				})
+
+				//updating the canvas constantly
+				socket.on('gameUpdate',function(contents){
+					var data = contents[currentserver];
+					//update data
+					playingGamesBools = data.playingGamesBools;
+					//redraw background
+					ctx.clearRect(0,0,500,500);
+
+					//special font for subtitles
+					ctx.font = "20px Verdana";
+					ctx.fillText("Players: ", 10, 30);
+					//show which lobby they are in
+					ctx.fillText("Lobby: " + currentserver, 330, 30);
+					ctx.font = "14px Verdana";
+
+					//draw in connected players on the side
+					for(let i = 0; i < data.playerdata.length; i++){
+						//show which users are online on the left
+						ctx.fillText(data.playerdata[i].name, 10, data.playerdata[i].number*25 + 35);
+					}
+
+					if(playingGamesBools.playinghangman){
+						//draw hangman here
+
+
+						if(data.game.lose){
+							console.log('lose');
+							let image = document.getElementById("lost");
+							ctx.drawImage(image, 0, 0, 500, 500);
+						}
+						else if(data.game.win){
+							console.log('win');
+							let image = document.getElementById("won");
+							ctx.drawImage(image, 0, 0, 500, 500);
+						}
+						else{
+							var img = document.getElementById(`${data.game.errors}error`);
+							ctx.drawImage(img, 150, 40, 240, 240);
+							
+							ctx.font = "20px Verdana";
+							for(var b = 1; b <= data.game.wordstate.length; b++){
+								ctx.fillText(data.game.wordstate[b-1], 200 + b*25, 350);
+							}
+							ctx.font = "14px Verdana";
+							ctx.fillText("Wrong Guesses: ", 30, 390);
+							for(var b = 1; b <= data.game.wrongletters.length; b++){
+								ctx.fillText(data.game.wrongletters[b-1], 140 + b*25, 390);
+							}
+						}
+					}
+				})
+
+
+				function getUser(){
+					username = document.getElementById("userName").value;
+					console.log("username updated to " + username);
+					socket.emit('usernameUpdate', username);
+				}
+				
+				
+
+				function hangmanStart(){
+
+					if(!playingGamesBools.playinghangman){
+						socket.emit('hangmanStart', currentserver);
+						playingGamesBools.playinghangman = true;
+					}
+					else{
+						alert("already playing hangman!");
+					}
+				}
+
+				function guess(){
+					contents = document.getElementById("hangman-guess").value;
+					if(contents.length > 1){
+						alert('guess must be a letter!');
+						return;
+					}
+                    
+					socket.emit('guess', [contents, currentserver]);
+				}
+		      /*
+	            //this function gets called by the button
+	            function lobby(a){
+	                //use an object to hold all the input values
+	                if(a == 0) {
+
+                		lobbydata = {
+                    	//get data from the input tag using .getElementById().values
+                    	lobbyName: document.getElementById("lobby-name").value,
+                    	password: document.getElementById("lobby-password").value,
+                    	name: document.getElementById("name").value
+	                	};
+	                	currentserver = lobbydata.lobbyName;
+	                	socket.emit('createlobby', lobbydata);
+	                	socket.emit('updateclientlobby', lobbydata.lobbyName);
+
+	               	}
+	                else {
+
+                    	lobbydata = {
+                    	//get data from the input tag using .getElementById().values
+                    	lobbyName: document.getElementById("lobby-name2").value,
+                    	password: document.getElementById("lobby-password-2").value,
+                    	name: document.getElementById("name2").value
+	                	};
+
+	                	socket.emit('joinlobby', lobbydata)
+	                }
+	                //output it onto the console for you to see
+	                alert(lobbydata.lobbyName + ", " + lobbydata.password + ", " + lobbydata.name);
+	            }*/
+	        </script>
+	    </div>
+                
+    
+  
+    </head>
+    <!---form 1--->
+    <body>
+    	<div class="gamebuttons">
+    		<label for="text"> Enter a letter:  </label>
+			<input type="text" id="hangman-guess">
+			<button onclick="guess()" id="hangman-submit"> Guess! </button>
+    	</div>
+    	<div class="gamebuttons">
+			<input type="text" id="userName" placeholder="enter username">
+			<button onclick="getUser()" id="userBtn"> Submit </button>
+    	</div>
+    	<div class="gamebuttons">
+    		<button onclick="hangmanStart()" id="hangmanselect"> Start Hangman Game!</button>
+    	</div>		
+    	<div id="gameassets">
+			<img src="https://cdn.discordapp.com/attachments/681002801647845430/1072973706206388294/no_mistakes.png" alt="no mistakes" id="0error" style="opacity:0.0;position: absolute;  left: -999999px;">
+			<img src="https://cdn.discordapp.com/attachments/681002801647845430/1072973674853974086/1_mistake.png" alt="one mistakes" id="1error" style="opacity:0.0;position: absolute;  left: -999999px;">
+			<img src="https://cdn.discordapp.com/attachments/681002801647845430/1072973705182982154/2_mistakes.png" alt="two mistakes" id="2error" style="opacity:0.0;position: absolute;  left: -999999px;">
+			<img src="https://cdn.discordapp.com/attachments/681002801647845430/1072973705375924354/3_mistakes.png" alt="three mistakes" id="3error" style="opacity:0.0;position: absolute;  left: -999999px;">
+			<img src="https://cdn.discordapp.com/attachments/681002801647845430/1072973705564659753/4_mistakes.png" alt="four mistakes" id="4error" style="opacity:0.0;position: absolute;  left: -999999px;">
+			<img src="https://cdn.discordapp.com/attachments/681002801647845430/1072973705770184704/5_mistakes.png" alt="five mistakes" id="5error" style="opacity:0.0;position: absolute;  left: -999999px;">
+			<img src="https://cdn.discordapp.com/attachments/681002801647845430/1072973705967321088/6_mistakes.png" alt="six mistakes" id="6error" style="opacity:0.0;position: absolute;  left: -999999px;">
+			<img src="https://i.ytimg.com/vi/8cjzvJToHwo/maxresdefault.jpg" alt="lossimage" id="lost" style="opacity:0.0;position: absolute;  left: -999999px;">
+			<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQ-QHrOzti9ge7CNg6oYNVZyAF0TsA2xQ8rE6YpqyfUDrmuI4Sg&usqp=CAU " alt="wonimage" id="won" style="opacity:0.0;position: absolute;  left: -999999px;">
+		</div>
+    </body>
+</html>
+

@@ -1,0 +1,38 @@
+*{
+	font-family: "Verdana";
+	font-weight:normal;
+}
+
+div{
+	clear: both;
+	position: relative;
+}
+
+html{
+	background-color: #87CEEB;
+}
+
+body{
+	padding: 0;
+	margin: 0;
+}
+
+button:hover{
+	font-weight:bold;
+}
+
+label{
+	padding: 5px;
+}
+.game{
+	padding: 20px;
+	display: flex;
+	justify-content: center;
+}
+
+.gamebuttons{
+	padding: 20px;
+	display: flex;
+	justify-content: center;
+}
+
